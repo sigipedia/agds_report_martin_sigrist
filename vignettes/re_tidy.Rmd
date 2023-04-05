@@ -1,0 +1,76 @@
+---
+title: "re_tidy"
+author: "Martin Sigrist"
+date: "2023-03-06"
+output: html_document
+---
+
+# Data wrangling
+
+## Manual data cleaning
+
+-   Removed header text
+-   Modified column headers
+  -   time in years
+  -   CO2 content in g C / m^2
+-   Removed empty rows
+-   Filled up empty cells in experiment column
+
+# Load Packages
+
+```{r}
+library(tidyverse)
+# library(tidyr)
+# library(dplyr)
+# library(lubridate)
+# library(ggplot2)
+```
+
+
+# Import Data
+```{r}
+elev_CO2_exp <- readr::read_delim("../data/1249534s1-s6_cleaned.csv", delim = ";", show_col_types = FALSE) # Read data set from file
+elev_CO2_exp
+```
+# Log-responce ration per experiment
+Data are aggregated per experiment by calculating the mean value for the ambient (low) and elevated (high) CO2 concentration. As the development over time is not from interest, the data evaluation is done like that.
+
+```{r}
+experiment_data <- elev_CO2_exp |>                                          # Elevated CO2 Experiments data set
+  select(experiment, ends_with("CO2_mean")) |>                              # Take columns from interest
+  group_by(experiment) |>                                                   # Group data by experiment
+  summarise(amb_CO2 = mean(amb_CO2_mean), inc_CO2 = mean(inc_CO2_mean)) |>  # Calculate mean values per experiment
+  mutate(LRR = log(inc_CO2 / amb_CO2))                                      # Calculate Log-Response Ration
+experiment_data
+```
+# Log-responce ration per time phase
+The log-responce ration per phase in the experiment is calculated first for each data point. The number of data point for the three stages (early, mid and late) are different. The mean values of the log-responce ratio for each phase is calculated at the end to avoid over weighting of the data points in the phases with a low number of measurements. The temporal development during the experiments are not from interest.
+
+```{r}
+# Adding new column with the phase definition (early, mid, late)
+elev_CO2_exp <-
+  elev_CO2_exp |>                                    # Elevated CO2 Experiments data set
+    filter(exp_time < 3) |>                          # Take rows where experiment runs less than 3 years
+    mutate(exp_phase = "early") |>                   # Add column with experiment phase
+    bind_rows(                                       # Combine with rows with experiments in mid-phase
+      elev_CO2_exp |>                                # Elevated CO2 Experiments data set
+        filter(exp_time >= 3 & exp_time <= 6) |>     # Take rows where experiment runs between 3 and 6 years
+        mutate(exp_phase = "mid")                    # Add column with experiment phase
+    ) |>
+    bind_rows(                                       # Combine with rows with experiments in late
+      elev_CO2_exp |>                                # Elevated CO2 Experiments data set
+        filter(exp_time > 6) |>                      # Take rows where experiment runs longer than 6 years
+        mutate(exp_phase = "late")                   # Add column with experiment phase
+    )
+
+# Calculating the log-response ration per time phase
+phase_LRR <- elev_CO2_exp |>                         # Elevated CO2 Experiments data set
+  select(exp_phase, ends_with("CO2_mean")) |>        # Take columns from interest
+  mutate(LRR = log(inc_CO2_mean / amb_CO2_mean)) |>  # Calculate Log-Response Ration for each measurement
+  group_by(exp_phase) |>                             # Group data by experiment
+  summarise(LRR_mean = mean(LRR))                    # Calculate mean values per experiment
+
+# Print table with results
+knitr::kable(phase_LRR, digits = c(NA, 4))
+```
+
