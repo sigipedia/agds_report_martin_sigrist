@@ -6,6 +6,54 @@ output: html_document
 ---
 
 ```{r}
+library(tidyverse)
+```
+
+TA_* (°C): Air temperature
+SW_IN_* (W m−2): Shortwave incoming radiation
+LW_IN_* (W m−2): Longwave incoming radiation
+VPD_* (hPa): Vapor pressure deficit (the difference between actual and saturation water vapor pressure)
+PA_* (kPa): Atmospheric pressure
+P_* (mm): Precipitation
+WS_* (m s−1): Wind speed
+SWC_* (%): Volumetric soil water content
+GPP_* (μmol CO2 m−2 s−1): Gross primary production (the ecosystem-level gross CO2 uptake flux driven by photosynthesis)
+
+
+```{r}
+half_hourly_fluxes <- read_csv("../data/df_for_stepwise_regression.csv", show_col_types = FALSE)
+half_hourly_fluxes
+```
+
+
+
+# Bivariate Models
+
+```{r}
+# Vector with names of independent variables
+indep_vars <- colnames(half_hourly_fluxes)[! colnames(half_hourly_fluxes) %in% c("siteid", "TIMESTAMP", "GPP_NT_VUT_REF")]
+
+# Create empty variable for results
+res <- NULL 
+
+for (i in indep_vars) {
+  # Calculate linear model
+  linmod <- lm(as.formula(paste("GPP_NT_VUT_REF ~ ", i)), data = half_hourly_fluxes)
+  
+  # Add results for actual model to result data frame
+  res <- bind_rows(res,
+                   tibble(
+                     mse = mean(linmod$residuals^2),
+                     R2 = summary(linmod)$r.squared,
+                     R2_adj = summary(linmod)$adj.r.s,
+                     AIC = extractAIC(linmod)[2],
+                     BIC = BIC(linmod))) # this implementation is based on log-likelihood
+  #print(coef(linmod))
+  #print(summary(linmod)$r.squared)
+}
+
+res
 
 ```
+
 
