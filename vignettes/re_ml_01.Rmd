@@ -1,0 +1,275 @@
+---
+title: "Supervised Machine Learning I"
+author: "Maritn Sigrist"
+date: "2023-05-15"
+output: html_document
+toc: true
+---
+
+# Load required Libraries
+```{r}
+library(tidyverse)
+library(caret)
+library(recipes)
+```
+
+# Load external functions
+```{r}
+source("../R/eval_model.R")
+source("../R/read_data.R")
+```
+
+
+## Read and Clean Data
+```{r}
+daily_fluxes <- read_data("../data/FLX_CH-Dav_FLUXNET2015_FULLSET_DD_1997-2014_1-3.csv")
+```
+
+## Data spliting 
+```{r}
+# Data splitting
+set.seed(1982)  # for reproducibility
+split <- rsample::initial_split(daily_fluxes, prop = 0.7, strata = "VPD_F")
+daily_fluxes_train <- rsample::training(split)
+daily_fluxes_test <- rsample::testing(split)
+```
+
+## Model and pre-processing formulation
+```{r}
+# Use all variables but LW_IN_F
+pp <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_F + P_F + WS_F,
+                      data = daily_fluxes_train |> drop_na()) |>
+  recipes::step_BoxCox(all_predictors()) |>
+  recipes::step_center(all_numeric(), -all_outcomes()) |>
+  recipes::step_scale(all_numeric(), -all_outcomes())
+```
+
+
+# Comparison of the linear regression and KNN models
+## Linear regression model
+```{r}
+# Fit linear regression model
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_lm <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "lm",
+    trControl = caret::trainControl(method = "none"),
+    metric = "RMSE"
+  )
+)
+
+eval_model(mod = mod_lm, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+```
+
+## k-Neares-Neighbour model
+```{r}
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_knn <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "knn",
+    trControl = caret::trainControl(method = "none"),
+    tuneGrid = data.frame(k = 8),
+    metric = "RMSE"
+  )
+)
+
+eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+```
+
+##  Temporal variations of observed and modelled GPP
+### Whole data set
+```{r}
+# Prepare data frame for plotting
+plot_data <- daily_fluxes |>
+  select(-LW_IN_F) |> # Remove LW_IN_F variable
+  drop_na() |> # Remove observations with NAs
+  select(TIMESTAMP, GPP_NT_VUT_REF) |> # Select time stamp and reference variables
+  mutate(lm_pred = predict(mod_lm, newdata = daily_fluxes |> select(-LW_IN_F) |> drop_na())) |> # Add prediction of linear model
+  mutate(knn_pred = predict(mod_knn, newdata = daily_fluxes |> select(-LW_IN_F) |> drop_na())) # Add prediction of knn model
+
+# Create plot with temporal variations for linear model
+lm_plot <- ggplot(
+    data = plot_data,
+    aes(x = TIMESTAMP, y = lm_pred-GPP_NT_VUT_REF)) +
+  geom_line() +
+  geom_hline(yintercept=0, linetype='dashed', color="red", linewidth=1.5) +
+  labs(title = "Linear model", 
+       x = "Date", 
+       y = expression(paste("Variation (", mu,"mol CO"[2], " m"^-2, "s"^-1, ")"))) +
+  theme_classic()
+
+# Create plot with temporal variations for knn model
+knn_plot <- ggplot(
+    data = plot_data,
+    aes(x = TIMESTAMP, y = knn_pred-GPP_NT_VUT_REF)) +
+  geom_line() +
+  geom_hline(yintercept=0, linetype='dashed', color="red", linewidth=1.5) +
+  labs(title = "knn model", 
+       x = "Date", 
+       y = expression(paste("Variation (", mu,"mol CO"[2], " m"^-2, "s"^-1, ")"))) +
+  theme_classic()
+
+# combine plots
+cowplot::plot_grid(lm_plot, knn_plot, nrow = 2)
+```
+
+### Singel year
+```{r}
+plot_year = 2010 # Define single year to plot
+
+# Create plot with temporal variations for linear model
+lm_plot <- ggplot(
+    data = plot_data |> filter(year(TIMESTAMP) == plot_year),
+    aes(x = TIMESTAMP, y = lm_pred-GPP_NT_VUT_REF)) +
+  geom_line() +
+  geom_hline(yintercept=0, linetype='dashed', color="red", linewidth=1.5) +
+  labs(title = "Linear model", 
+       x = "Date", 
+       y = expression(paste("Variation (", mu,"mol CO"[2], " m"^-2, "s"^-1, ")"))) +
+  theme_classic()
+
+# Create plot with temporal variations for knn model
+knn_plot <- ggplot(
+    data = plot_data |> filter(year(TIMESTAMP) == plot_year),
+    aes(x = TIMESTAMP, y = knn_pred-GPP_NT_VUT_REF)) +
+  geom_line() +
+  geom_hline(yintercept=0, linetype='dashed', color="red", linewidth=1.5) +
+  labs(title = "knn model", 
+       x = "Date", 
+       y = expression(paste("Variation (", mu,"mol CO"[2], " m"^-2, "s"^-1, ")"))) +
+  theme_classic()
+
+# combine plots
+cowplot::plot_grid(lm_plot, knn_plot, nrow = 2)
+```
+
+
+# The role of k
+## Hypothesis
+
+
+k = 1: 
+  train set: R2 -> 1, MAE -> 0: perfect correlation
+  validation set: R2 -> small, MAE -> big
+  -> model is overfittet: 
+k = N
+  train set: R2 -> 0, MAE -> big
+  validation: R2 -> 0, 
+  -> model is underfittes, same result for every new prediction (average of the observations of the train set)
+
+
+## Model with k = 1
+```{r}
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_knn <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "knn",
+    trControl = caret::trainControl(method = "none"),
+    tuneGrid = data.frame(k = 1),
+    metric = "RMSE"
+  )
+)
+
+eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+```
+
+## Model with k = 400
+```{r}
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_knn <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "knn",
+    trControl = caret::trainControl(method = "none"),
+    tuneGrid = data.frame(k = 400),
+    metric = "RMSE"
+  )
+)
+
+eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+```
+
+
+## Evaluate dependency from k
+### Method: Cross validation
+```{r}
+# Tune hyperparameter k with cross validation
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_knn <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "knn",
+    trControl = caret::trainControl(method = "cv",
+                                    number = 10,
+                                    search = "grid"),
+    tuneGrid = expand.grid(k = c(1, 2, 5, 10, 15, 18, 19, 20, 21, 22, 23, 24, 25, 50, 100, 200)),
+    metric = "RMSE"
+  )
+)
+
+# Create plot
+ggplot(
+    data = mod_knn$results,
+    aes(x = k, y = RMSE)) +
+  geom_line(size = 1) +
+  geom_point(
+    data = mod_knn$results |> filter(k == mod_knn$bestTune[1,1]) |> select(k, RMSE),
+    aes(x = k, y = RMSE), size = 3, color = "tomato") +
+  geom_text(x=25, y=1.6, label = paste("k = ", mod_knn$bestTune[1,1])) +
+  labs(title = "RMSE vs. k by Cross Validation", 
+       x = "k", 
+       y = "RMSE") +
+  theme_classic()
+
+```
+
+### Method: Bootstrap
+```{r}
+# Tune hyperparameter k with cross validation
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_knn <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "knn",
+    trControl = caret::trainControl(method = "boot",
+                                    search = "grid"),
+    tuneGrid = expand.grid(k = c(1, 2, 5, 10, 15, 20, 30, 31, 32, 33, 34, 35, 36, 37, 40, 45, 50, 100, 200)),
+    metric = "RMSE"
+  )
+)
+
+# Create plot
+ggplot(
+    data = mod_knn$results,
+    aes(x = k, y = RMSE)) +
+  geom_line(size = 1) +
+  geom_point(
+    data = mod_knn$results |> filter(k == mod_knn$bestTune[1,1]) |> select(k, RMSE),
+    aes(x = k, y = RMSE), size = 3, color = "tomato") +
+  geom_text(x=25, y=1.6, label = paste("k = ", mod_knn$bestTune[1,1])) +
+  labs(title = "RMSE vs. k by Bootsrap",
+       x = "k", 
+       y = "RMSE") +
+  theme_classic()
+```
+
+## Model with tuned k
+The value for k depends on the method used. For this final evaluation, k is set to an average value.
+```{r}
+suppressWarnings( # Suppress warnings from Box-Cox-Transformation
+  mod_knn <- caret::train(
+    pp, 
+    data = daily_fluxes_train |> drop_na(), 
+    method = "knn",
+    trControl = caret::trainControl(method = "none"),
+    tuneGrid = data.frame(k = 26),
+    metric = "RMSE"
+  )
+)
+
+eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+```
+Compared to all previous models, the final model achieves the highest R2 value and the lowest RMSE for the training and the test set. Additionoally, both values are similar for both sets. This indicates, that the model has a good balance between the bias and the prediction variance.

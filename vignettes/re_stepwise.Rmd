@@ -5,6 +5,7 @@ date: "2023-04-05"
 output: html_document
 ---
 
+# Load required libraries
 ```{r}
 library(tidyverse)
 ```
@@ -43,6 +44,7 @@ for (i in indep_vars) {
   # Add results for actual model to result data frame
   res <- bind_rows(res,
                    tibble(
+                     feature = i,
                      mse = mean(linmod$residuals^2),
                      R2 = summary(linmod)$r.squared,
                      R2_adj = summary(linmod)$adj.r.s,
@@ -52,8 +54,85 @@ for (i in indep_vars) {
   #print(summary(linmod)$r.squared)
 }
 
-res
+# Show results, rounded on three decimal places
+res |> mutate_at(vars(-feature), ~round(., 3))
+```
+
+
+
+# Stepwise forward regression
+```{r}
+# Vector with names of independent variables
+indep_vars <- colnames(half_hourly_fluxes)[! colnames(half_hourly_fluxes) %in% c("siteid", "TIMESTAMP", "GPP_NT_VUT_REF")]
+
+# Create empty data frame for results
+df_res <- data.frame(matrix(nrow = 0, ncol = length(indep_vars) + 2))
+#provide column names
+colnames(df_res) <- append(append(c("prev.model"), indep_vars),"AIC")
+
+model_vars <- NULL # Define empty variable for the independent variables of the actual model
+step_AIC <- NULL # Variable to store AIC value for the highest R2 in the sctual step
+
+n_step <- 0 # Variable for if condition in the repeat-loop to avoid index problems
+
+repeat { # Loop to go through the independent variables
+  max_R2 <- 0 # Variable to store the highest R2 for the actual step
+  
+  # Add new row to result data frame
+  df_res[nrow(df_res)+1,] <- rep(NA, 16) # Fill new row with N/As
+  df_res[nrow(df_res),1] <- paste(model_vars, collapse=" + ") # Fill first cell in new row with the previous model formulation
+  
+
+  for (i in indep_vars) { # Loop to go though the remaining variables, not yet in the model
+    # Calculate linear model (Remove all N/As to become comperable with the result from the step function, that only works without N/As)
+    linmod <- lm(as.formula(paste("GPP_NT_VUT_REF ~ ", paste(append(model_vars, i), collapse=" + "))), data = half_hourly_fluxes |> drop_na())
+    
+    # Store actual predictor, AIC and R2 if R2 is the highest in the actual round
+    if(summary(linmod)$r.squared > max_R2) {
+      max_R2 <- summary(linmod)$r.squared
+      step_AIC <- extractAIC(linmod)[2]
+      best_predictor <- i
+    }
+    
+    # Add R2 for the actual variable to the result data frame
+    df_res[nrow(df_res),i] <- summary(linmod)$r.squared
+  }
+  
+  # Add best predictor for the actual step to model
+  model_vars <- append(model_vars, best_predictor)
+  
+  # Add AIC for the highest R2 in the actual step to the result data frame
+  df_res[nrow(df_res),"AIC"] <- step_AIC
+  
+  # Remove best predictor from actual round from overall list of independent variables
+  indep_vars <- indep_vars[!indep_vars %in% best_predictor]
+
+  
+  if(step_AIC > df_res[nrow(df_res)-n_step,"AIC"]) { # Break condition for repeat loop
+    break
+  }
+  n_step <- 1
+}
+
+# Print best model
+cat("Best model: ", paste("GPP_NT_VUT_REF ~ ", df_res[nrow(df_res),1]), "\n")
+cat("R2 for best model: ", max(df_res[nrow(df_res)-1,3:ncol(df_res)-1], na.rm = TRUE), "\n")
+cat("AIC for best model: ", df_res[nrow(df_res)-1,ncol(df_res)], "\n")
+```
+
+```{r}
+# Generate scope model for the stepwise forward regression function "step"
+scope_model <- paste("GPP_NT_VUT_REF ~ ", paste(colnames(half_hourly_fluxes)[! colnames(half_hourly_fluxes) %in% c("siteid", "TIMESTAMP", "GPP_NT_VUT_REF")], collapse=" + "))
+
+stats::step(
+  object = lm(GPP_NT_VUT_REF ~ 1, # Start with the simplest model with only a consant
+                data = half_hourly_fluxes |> select(-siteid, -TIMESTAMP)|> drop_na() # Remove all NA to make the step function work
+              ),
+  scope = scope_model, # Scope model, including all variables
+  direction = "forward"
+)
 
 ```
+
 
 
