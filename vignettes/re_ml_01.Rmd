@@ -9,6 +9,7 @@ toc: true
 # Load required Libraries
 ```{r}
 library(tidyverse)
+library(lubridate)
 library(caret)
 library(recipes)
 ```
@@ -277,8 +278,6 @@ Taking a hig value for k would reslut in an underfitted model. For the case that
 
 ## Model with k = 1
 ```{r}
-source("../R/eval_model.R")
-
 suppressWarnings( # Suppress warnings from Box-Cox-Transformation
   mod_knn <- caret::train(
     pp, 
