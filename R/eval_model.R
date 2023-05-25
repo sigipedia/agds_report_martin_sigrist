@@ -14,21 +14,21 @@ eval_model <- function(mod, df_train, df_test, title_train = "Training set", tit
   df_train <- df_train |>
     drop_na()
   suppressWarnings( # Suppress warnings from Box-Cox-Transformation
-    df_train$fitted <- predict(mod, newdata = df_train)
+    df_train$predicted <- predict(mod, newdata = df_train)
   )
 
   df_test <- df_test |>
     drop_na()
   suppressWarnings( # Suppress warnings from Box-Cox-Transformation
-    df_test$fitted <- predict(mod, newdata = df_test)
+    df_test$predicted <- predict(mod, newdata = df_test)
   )
 
   # get metrics tables
   metrics_train <- df_train |>
-    yardstick::metrics(GPP_NT_VUT_REF, fitted)
+    yardstick::metrics(GPP_NT_VUT_REF, predicted)
 
   metrics_test <- df_test |>
-    yardstick::metrics(GPP_NT_VUT_REF, fitted)
+    yardstick::metrics(GPP_NT_VUT_REF, predicted)
 
   # extract values from metrics tables
   rmse_train <- metrics_train |>
@@ -47,7 +47,7 @@ eval_model <- function(mod, df_train, df_test, title_train = "Training set", tit
 
   # visualise as a scatterplot
   # adding information of metrics as sub-titles
-  plot_1 <- ggplot(data = df_train, aes(x=GPP_NT_VUT_REF, y=fitted)) +
+  plot_1 <- ggplot(data = df_train, aes(x=GPP_NT_VUT_REF, y=predicted)) +
     geom_point(alpha = 0.3) +
     geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linetype = "dashed", linewidth=1.1, color = "red") +
     geom_abline(slope = 1, intercept = 0, linewidth=1.2, color = "blue") +
@@ -56,7 +56,7 @@ eval_model <- function(mod, df_train, df_test, title_train = "Training set", tit
          title = title_train) +
     theme_classic()
 
-  plot_2 <- ggplot(data = df_test, aes(x=GPP_NT_VUT_REF, y=fitted)) +
+  plot_2 <- ggplot(data = df_test, aes(x=GPP_NT_VUT_REF, y=predicted)) +
     geom_point(alpha = 0.3) +
     geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linetype = "dashed", linewidth=1.1, color = "red") +
     geom_abline(slope = 1, intercept = 0, linewidth=1.2, color = "blue") +
