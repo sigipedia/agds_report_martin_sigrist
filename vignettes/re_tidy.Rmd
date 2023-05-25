@@ -1,39 +1,38 @@
 ---
-title: "re_tidy"
-author: "Martin Sigrist"
-date: "2023-03-06"
+title: "Cleaning data from elevated CO~2~
+experiments"
+author: "Martin Sigrist (21-101-175)"
+date: "2023-05-25"
 output: html_document
 ---
 
-# Data wrangling
+# Manual data cleaning
 
-## Manual data cleaning
+The following manual modifications have been done with Excel:
 
 -   Removed header text
 -   Modified column headers
-  -   time in years
-  -   CO2 content in g C / m^2
+  o   time in years
+  o   CO~2~ content in g~C~ m^-2^
 -   Removed empty rows
 -   Filled up empty cells in experiment column
 
+The cleaned data was saved in a csv-file for usage in this work.
+
 # Load Packages
 
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
-# library(tidyr)
-# library(dplyr)
-# library(lubridate)
-# library(ggplot2)
 ```
-
 
 # Import Data
 ```{r}
 elev_CO2_exp <- readr::read_delim("../data/1249534s1-s6_cleaned.csv", delim = ";", show_col_types = FALSE) # Read data set from file
-elev_CO2_exp
 ```
-# Log-responce ration per experiment
-Data are aggregated per experiment by calculating the mean value for the ambient (low) and elevated (high) CO2 concentration. As the development over time is not from interest, the data evaluation is done like that.
+
+# Log-response ration per experiment
+
+Data are aggregated per experiment by calculating the mean value for the ambient (low) and elevated (high) CO~2~ concentration. As the development over time is not from interest, the data evaluation can be done like that.
 
 ```{r}
 experiment_data <- elev_CO2_exp |>                                          # Elevated CO2 Experiments data set
@@ -41,36 +40,59 @@ experiment_data <- elev_CO2_exp |>                                          # El
   group_by(experiment) |>                                                   # Group data by experiment
   summarise(amb_CO2 = mean(amb_CO2_mean), inc_CO2 = mean(inc_CO2_mean)) |>  # Calculate mean values per experiment
   mutate(LRR = log(inc_CO2 / amb_CO2))                                      # Calculate Log-Response Ration
-experiment_data
+
+
+experiment_data |>
+  knitr::kable(digits = c(NA, 1, 1, 4),
+               col.names = c("Experiment",
+                             "Soil organic carbon @ ambient CO~2~ level (g~C~ m^-2^)",
+                             "Soil organic carbon @ elevated CO~2~ level (g~C~ m^-2^)",
+                             "Log-responce ratio"),
+               format = "html") |>
+  kableExtra::kable_classic(full_width = F) |>
+  kableExtra::column_spec(2, width = "2in") |>
+  kableExtra::column_spec(3, width = "2in")
 ```
-# Log-responce ration per time phase
-The log-responce ration per phase in the experiment is calculated first for each data point. The number of data point for the three stages (early, mid and late) are different. The mean values of the log-responce ratio for each phase is calculated at the end to avoid over weighting of the data points in the phases with a low number of measurements. The temporal development during the experiments are not from interest.
+
+# Log-response ration per time phase
+
+The log-response ration per phase in the experiment is calculated first for each data point. The number of data point for the three stages (early, mid and late) are different. The mean values of the log-response ratio for each phase is calculated at the end to avoid over weighting of the data points in the phases with a low number of measurements. The temporal development during the experiments are not from interest.
 
 ```{r}
 # Adding new column with the phase definition (early, mid, late)
 elev_CO2_exp <-
-  elev_CO2_exp |>                                    # Elevated CO2 Experiments data set
-    filter(exp_time < 3) |>                          # Take rows where experiment runs less than 3 years
-    mutate(exp_phase = "early") |>                   # Add column with experiment phase
-    bind_rows(                                       # Combine with rows with experiments in mid-phase
-      elev_CO2_exp |>                                # Elevated CO2 Experiments data set
-        filter(exp_time >= 3 & exp_time <= 6) |>     # Take rows where experiment runs between 3 and 6 years
-        mutate(exp_phase = "mid")                    # Add column with experiment phase
-    ) |>
-    bind_rows(                                       # Combine with rows with experiments in late
-      elev_CO2_exp |>                                # Elevated CO2 Experiments data set
-        filter(exp_time > 6) |>                      # Take rows where experiment runs longer than 6 years
-        mutate(exp_phase = "late")                   # Add column with experiment phase
+  elev_CO2_exp |>                                                    # Elevated CO2 Experiments data set
+    filter(exp_time < 3) |>                                          # Take rows where experiment runs less than 3 years
+    mutate(exp_phase_name = "early phase (<3 years since start)",    # Add column with experiment phase name
+           exp_phase_num = 1) |>                                     # Add column with experiment phase number
+    bind_rows(                                                       # Combine with rows with experiments in mid-phase
+      elev_CO2_exp |>                                                # Elevated CO2 Experiments data set
+        filter(exp_time >= 3 & exp_time <= 6) |>                     # Take rows where experiment runs between 3 and 6 years
+        mutate(exp_phase_name = "mid-phase (3-6 years since start)", # Add column with experiment phase name
+               exp_phase_num = 2)) |>                                # Add column with experiment phase number
+    bind_rows(                                                       # Combine with rows with experiments in late
+      elev_CO2_exp |>                                                # Elevated CO2 Experiments data set
+        filter(exp_time > 6) |>                                      # Take rows where experiment runs longer than 6 years
+        mutate(exp_phase_name = "late phase (>6 years since start)", # Add column with experiment phase name
+               exp_phase_num = 3)                                    # Add column with experiment phase number
     )
 
 # Calculating the log-response ration per time phase
-phase_LRR <- elev_CO2_exp |>                         # Elevated CO2 Experiments data set
-  select(exp_phase, ends_with("CO2_mean")) |>        # Take columns from interest
-  mutate(LRR = log(inc_CO2_mean / amb_CO2_mean)) |>  # Calculate Log-Response Ration for each measurement
-  group_by(exp_phase) |>                             # Group data by experiment
-  summarise(LRR_mean = mean(LRR))                    # Calculate mean values per experiment
+phase_LRR <- elev_CO2_exp |>                                 # Elevated CO2 Experiments data set
+  select(starts_with("exp_phase"), ends_with("CO2_mean")) |> # Take columns from interest
+  mutate(LRR = log(inc_CO2_mean / amb_CO2_mean)) |>          # Calculate Log-Response Ration for each measurement
+  group_by(exp_phase_name) |>                                # Group data by experiment
+  summarise(LRR_mean = mean(LRR),                            # Calculate mean values per experiment
+            exp_phase_num = mean(exp_phase_num)) |>          # Experiment phase number
+  arrange(exp_phase_num) |>                                  # Arrange by experiment phase number
+  select(-exp_phase_num)                                     # Drop experiment phase number column (no longer used)
 
 # Print table with results
-knitr::kable(phase_LRR, digits = c(NA, 4))
+phase_LRR |>
+  knitr::kable(digits = c(NA, 4),
+               col.names = c("Experiment Phase",
+                             "Log-response ratio"),
+               format = "html") |>
+  kableExtra::kable_classic(full_width = F)
 ```
 
