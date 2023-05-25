@@ -2,26 +2,32 @@
 title: "Supervised Machine Learning II"
 author: "Maritn Sigrist"
 date: "2023-05-15"
-output: html_document
-toc: true
+output: 
+  html_document: 
+    toc: yes
 ---
 
+# Introduction
+
+In this chapter, k-Nearest-Neighbor models are trained for two different sites of Fluxnet. In a first step, the models are trained with data from one site and tested with data from the same site and data from the other site. In the second step, a model is trained with mixed data from both sites and tested with data from both sites individually. The goal is to investigate the generalizability of the models across different sites.
+
 # Load required Libraries
-```{r}
+```{r, label = load_lib,  warning = FALSE, message = FALSE}
 library(tidyverse)
+library(lubridate)
 library(caret)
 library(recipes)
 ```
 
 # Load external functions
-```{r}
+```{r, label = load_fun}
 source("../R/eval_model.R")
 source("../R/read_data.R")
 ```
 
 
 ## Read and Clean Data
-```{r}
+```{r, label = load_data}
 # Data for Davos site
 daily_fluxes_dav <- read_data("../data/FLX_CH-Dav_FLUXNET2015_FULLSET_DD_1997-2014_1-3.csv")
 # Data for Laegern site
@@ -29,7 +35,7 @@ daily_fluxes_lae <- read_data("../data/FLX_CH-Lae_FLUXNET2015_FULLSET_DD_2004-20
 ```
 
 ## Data spliting 
-```{r}
+```{r, label = data_split}
 # set random generator seed for reproducibility
 set.seed(1982)
 
@@ -47,7 +53,7 @@ daily_fluxes_lae_test <- rsample::testing(split)
 
 # Model for Davos site
 ## Model and pre-processing formulation
-```{r}
+```{r, label = pp_dav}
 # Use all variables but LW_IN_F
 pp_dav <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_F + P_F + WS_F,
                       data = daily_fluxes_dav_train |> drop_na()) |>
@@ -56,8 +62,10 @@ pp_dav <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_F
   recipes::step_scale(all_numeric(), -all_outcomes())
 ```
 
-## Hyper parameter tuning
-```{r}
+## Hyperparameter tuning
+```{r, label = hyp_tune_dav}
+set.seed(42) # Set random number generator seed for reproducibility
+
 # Tune hyperparameter k with cross validation and Mean Absolut Error as metric
 suppressWarnings( # Suppress warnings from Box-Cox-Transformation
   mod_knn_dav <- caret::train(
@@ -76,7 +84,7 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 ggplot(
     data = mod_knn_dav$results,
     aes(x = k, y = MAE)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   geom_point(
     data = mod_knn_dav$results |> filter(k == mod_knn_dav$bestTune[1,1]) |> select(k, MAE),
     aes(x = k, y = MAE), size = 3, color = "tomato") +
@@ -85,18 +93,19 @@ ggplot(
        x = "k", 
        y = "MAE") +
   theme_classic()
-
 ```
 
 ## Comparision within- and across-site
-```{r}
-eval_model(mod = mod_knn_dav, df_train = daily_fluxes_dav_test, df_test = daily_fluxes_lae_test, title_train="Within-Site", title_test="Across-Site")
+```{r, label = eval_dav}
+eval_model(mod = mod_knn_dav, df_train = daily_fluxes_dav_test, df_test = daily_fluxes_lae, title_train="Within-Site", title_test="Across-Site")
 ```
+
+Testing the model with data from the same site gives a similar result as shown in the previous chapter. The accuracy of the model is very bad when applied on data from the other site. The predicted values were smaller than the measured values in a majority of the observations. The range of the training data seems to be too small to cover also the data from the Lägern site.
 
 
 # Model for Laegern site
 ## Model and pre-processing formulation
-```{r}
+```{r, label = pp_lae}
 # Use all variables but LW_IN_F
 pp_lae <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_F + P_F + WS_F,
                       data = daily_fluxes_lae_train |> drop_na()) |>
@@ -105,8 +114,10 @@ pp_lae <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_F
   recipes::step_scale(all_numeric(), -all_outcomes())
 ```
 
-## Hyper parameter tuning
-```{r}
+## Hyperparameter tuning
+```{r, label = hyp_tune_lae}
+set.seed(42) # Set random number generator seed for reproducibility
+
 # Tune hyperparameter k with cross validation and Mean Absolut Error as metric
 suppressWarnings( # Suppress warnings from Box-Cox-Transformation
   mod_knn_lae <- caret::train(
@@ -125,7 +136,7 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 ggplot(
     data = mod_knn_lae$results,
     aes(x = k, y = MAE)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   geom_point(
     data = mod_knn_lae$results |> filter(k == mod_knn_lae$bestTune[1,1]) |> select(k, MAE),
     aes(x = k, y = MAE), size = 3, color = "tomato") +
@@ -138,18 +149,21 @@ ggplot(
 ```
 
 ## Comparision within- and across-site
-```{r}
-eval_model(mod = mod_knn_lae, df_train = daily_fluxes_lae_test, df_test = daily_fluxes_dav_test, title_train="Within-Site", title_test="Across-Site")
+```{r, label = eval_lae}
+eval_model(mod = mod_knn_lae, df_train = daily_fluxes_lae_test, df_test = daily_fluxes_dav, title_train="Within-Site", title_test="Across-Site")
 ```
+
+The metrics of the test with data from the same site as the training data were not as good as for the Davos site. The application of the model to the Davos site data gives a totally unusable result. The slope of the linear regression has the wrong sign and the scatter plot shows strange patterns. This model seems to have the same problem as the other one.
+
 
 # Model trained with combined data
 ## Combined data from both sites
-```{r}
+```{r, label = comb_data}
 daily_fluxes_comb_train <- bind_rows(daily_fluxes_dav_train, daily_fluxes_lae_train)
 ```
 
 ## Model and pre-processing formulation
-```{r}
+```{r, label = pp_comb}
 # Use all variables but LW_IN_F
 pp_comb <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_F + P_F + WS_F,
                       data = daily_fluxes_comb_train |> drop_na()) |>
@@ -158,8 +172,10 @@ pp_comb <- recipes::recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F + VPD_F + PA_
   recipes::step_scale(all_numeric(), -all_outcomes())
 ```
 
-## Hyper parameter tuning
-```{r}
+## Hyperparameter tuning
+```{r, label = hyp_tune_comb}
+set.seed(42) # Set random number generator seed for reproducibility
+
 # Tune hyperparameter k with cross validation and Mean Absolut Error as metric
 suppressWarnings( # Suppress warnings from Box-Cox-Transformation
   mod_knn_comb <- caret::train(
@@ -178,7 +194,7 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 ggplot(
     data = mod_knn_comb$results,
     aes(x = k, y = MAE)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   geom_point(
     data = mod_knn_comb$results |> filter(k == mod_knn_comb$bestTune[1,1]) |> select(k, MAE),
     aes(x = k, y = MAE), size = 3, color = "tomato") +
@@ -191,9 +207,115 @@ ggplot(
 ```
 
 ## Prediction for both sites with combined model
-```{r}
+```{r, label = eval_comb}
 eval_model(mod = mod_knn_comb, df_train = daily_fluxes_dav_test, df_test = daily_fluxes_lae_test, title_train="Davos", title_test="Laegern")
 ```
 
+A model trained with a combined data set is able to make valid predictions for both sites. For both sites, R^2^ and RMSE are similar to the ones that resulted from the models, train with data from one site only.
 
+# Site comparision
+## Base on available data
+The two sites can be compared based on the available measurements. In this case, the variables of temperature, precipitation and shortwave incoming radiation were compared, because they are strongly relevant for vegetation growth. The calculation does not consider missing values and different number of days per month. Therefor, monthly and yearly mean values and sums are rough estimations only.
 
+```{r, label=month_mean_plot, message=FALSE, fig.width=8}
+# Prepare data frame for plotting
+plot_data_dav <- daily_fluxes_dav |>
+  mutate(month = month(TIMESTAMP, label = TRUE), year = year(TIMESTAMP)) |>
+  group_by(year, month) |>
+  summarise(Temperature = mean(TA_F, na.rm = TRUE),     # Monthly mean temperature
+            Precipitation = sum(P_F, na.rm = TRUE),     # Monthly sum of precipitation
+            Radiation = mean(SW_IN_F, na.rm = TRUE)) |> # Monthly mean shortwave incoming radiation
+  group_by(month) |>
+  summarise(Temperature = mean(Temperature, na.rm = TRUE),     # Monthly mean temperature for all observed years
+            Precipitation = mean(Precipitation, na.rm = TRUE), # Monthly sum of precipitation for all observed years
+            Radiation = mean(Radiation, na.rm = TRUE))  |>     # Monthly mean shortwave incoming radiation for all observed years
+  mutate(site = "dav")
+
+plot_data_lae <- daily_fluxes_lae |>
+  mutate(month = month(TIMESTAMP, label = TRUE), year = year(TIMESTAMP)) |>
+  group_by(year, month) |>
+  summarise(Temperature = mean(TA_F, na.rm = TRUE),     # Monthly mean temperature
+            Precipitation = sum(P_F, na.rm = TRUE),     # Monthly sum of precipitation
+            Radiation = mean(SW_IN_F, na.rm = TRUE)) |> # Monthly mean shortwave incoming radiation
+  group_by(month) |>
+  summarise(Temperature = mean(Temperature, na.rm = TRUE),     # Monthly mean temperature for all observed years
+            Precipitation = mean(Precipitation, na.rm = TRUE), # Monthly sum of precipitation for all observed years
+            Radiation = mean(Radiation, na.rm = TRUE)) |>      # Monthly mean shortwave incoming radiation for all observed years
+  mutate(site = "lae")
+
+# Combine plot data from both sites
+plot_data <- bind_rows(plot_data_dav, plot_data_lae)
+
+# Generate temperature graph
+temp_plot <- ggplot() +
+  geom_line(data = plot_data,
+            aes(x = month, y = Temperature, group = site, color = site), linewidth = 1) +
+  geom_hline(yintercept  = mean(plot_data_dav$Temperature), color = "darkolivegreen", linetype='dashed', linewidth=1) +
+  geom_hline(yintercept  = mean(plot_data_lae$Temperature), color = "brown", linetype='dashed', linewidth=1) +
+  labs(title = "Temperature",
+       x = "Month",
+       y = "Mean temperature (°C)") +
+  theme_classic() +
+  theme(legend.position="none", axis.text.x = element_text(size = 8, angle = 45, vjust=1, hjust=1)) +
+  scale_colour_manual(values = c("darkolivegreen", "brown"))
+
+# Generate precipitation graph
+preci_plot <- ggplot() +
+  geom_line(data = plot_data,
+            aes(x = month, y = Precipitation, group = site, color = site), linewidth = 1) +
+  labs(title = "Precipitation",
+       x = "Month",
+       y = "Mean precipitation (mm)") +
+  ylim(0, 150) +
+  geom_text(aes(x="Jan", y=16, label = paste("Yearly mean Davos:", round(sum(plot_data_dav$Precipitation), 1), "mm")), hjust=0, size=3) +
+  geom_text(aes(x="Jan", y=10, label = paste("Yearly mean Lägerns:", round(sum(plot_data_lae$Precipitation), 1), "mm")), hjust=0, size=3) +
+  theme_classic() +
+  theme(legend.position="none", axis.text.x = element_text(size = 8, angle = 45, vjust=1, hjust=1)) +
+  scale_colour_manual(values = c("darkolivegreen", "brown"))
+
+#Generate radiation graph
+radi_plot <- ggplot() +
+  geom_line(data = plot_data,
+            aes(x = month, y = Radiation, group = site, color = site), linewidth = 1) +
+  labs(title = "SW incoming radiation",
+       x = "Month",
+       y = expression(paste("Mean radiation (W ", "m"^-2 , ")"))) +
+  ylim(0, 250) +
+  theme_classic() +
+  theme(legend.position=c(0.5,0.2), axis.text.x = element_text(size = 8, angle = 45, vjust=1, hjust=1)) +
+  scale_colour_manual(values = c("darkolivegreen", "brown"), name  ="Site:", labels=c("Davos", "Lägern"))
+
+# Combine to one singel graph
+cowplot::plot_grid(temp_plot, preci_plot, radi_plot, ncol = 3)
+```
+
+The presentation of the three variables mainly show two differences between the two sites. The temperature in Lägern is a few degree higher than the one in Davos for the whole year. The precipitation regime of the two sites differ mainly in the winter period. The precipitation in Davos is lower during these months than in Lägern.
+
+## Information from Fluxnet website
+
+The Fluxnet website provides detailed information about the two sites. The relevant characteristics for the interpretation of the KNN-models are listed below.
+
+### Davos
+
+Data sourcs: https://fluxnet.org/sites/siteinfo/CH-Dav
+
+-   Elevation: 1639 m
+-   Vegetation IGBP: 	ENF (Evergreen Needleleaf Forests: Lands dominated by woody vegetation with a percent cover >60% and height exceeding 2 meters. Almost all trees remain green all year. Canopy is never without green foliage.)
+-   Climate Koeppen: 	ET (Tundra)
+-   Mean Annual Temperature: 	2.8 °C
+-   Mean Annual Precipitation: 1062 mm
+
+### Lägern
+
+Data sourcce: https://fluxnet.org/sites/siteinfo/CH-Lae
+
+-   Elevation: 689 m
+-   Vegetation IGBP: 	MF (Mixed Forests: Lands dominated by trees with a percent cover >60% and height exceeding 2 meters. Consists of tree communities with interspersed mixtures or mosaics of the other four forest types. None of the forest types exceeds 60% of landscape.)
+-   Climate Koeppen: 	—
+-   Mean Annual Temperature: 8.3 °C
+-   Mean Annual Precipitation: 1100 mm
+
+# Discussion
+
+The observed behavior of the models can be explained with the working principle of a k-nearest-neighbor regressor. The two sites have different climatic conditions. These conditions result in different vegetation. Because of these environmental conditions, the observations for the two sides might be very different and the data points populate different regions in the multidimensional space of all variables. The prediction of a new, unseen data point is based on k data points from the training set. This model is not able to make predictions outside of the region, the training data is covering. Therefor, the two models, trained with data from a single site, were not able to predict the GPP for the other one.
+The last model, trained with combined data covers both sites. As the regions, covered by the two data sets, might be overlapping, the prediction of this model is slightly worse than the single site model predictions for themselves.

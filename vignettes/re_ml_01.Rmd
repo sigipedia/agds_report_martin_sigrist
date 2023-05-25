@@ -1,13 +1,12 @@
 ---
 title: "Supervised Machine Learning I"
-author: "Maritn Sigrist"
-date: "2023-05-15"
+author: "Maritn Sigrist (21-101-175)"
+date: "2023-05-25"
 output: html_document
-toc: true
 ---
 
 # Load required Libraries
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
 library(lubridate)
 library(caret)
@@ -324,7 +323,7 @@ set.seed(42) # Set random number generator seed for reproducibility
 # Tune hyperparameter k with cross validation
 suppressWarnings( # Suppress warnings from Box-Cox-Transformation
   mod_knn <- caret::train(
-    pp, 
+    pp,
     data = daily_fluxes_train |> drop_na(), 
     method = "knn",
     trControl = caret::trainControl(method = "cv",
