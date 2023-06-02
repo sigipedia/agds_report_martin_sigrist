@@ -1,85 +1,74 @@
 ---
-title: "re_story"
+title: "Telling a story from data"
 author: "Martin Sigrist"
-date: "2023-03-11"
+date: "2023-06-01"
 output: html_document
 ---
 
-```{r}
+# Introduction
+
+The aim of this chapter is to tell a story, based on a given data set, that comes with the dataset-R-library.
+
+# Required libraries
+
+```{r, message=FALSE}
+# Load required libraries
 library(tidyverse)
-# install.packages("ggcorrplot")
-library(ggcorrplot)
-# install.packages("GGally")
 library(GGally)
 library(lubridate)
 ```
 
-
-US EPA, OAR (2015-05-29). "Ground-level Ozone Basics". US EPA. Retrieved 2019-10-26. <https://www.epa.gov/ground-level-ozone-pollution/ground-level-ozone-basics> "Tropospheric, or ground level ozone, is not emitted directly into the air, but is created by chemical reactions between oxides of nitrogen (NOx) and volatile organic compounds (VOC). This happens when pollutants emitted by cars, power plants, industrial boilers, refineries, chemical plants, and other sources chemically react in the presence of sunlight.
-
-Ozone is most likely to reach unhealthy levels on hot sunny days in urban environments, but can still reach high levels during colder months. Ozone can also be transported long distances by wind, so even rural areas can experience high ozone levels."
-
-Conversion factor for "Langley"
-NIST Guide to the SI, Appendix B.9: Factors for units listed by kind of quantity or field of science
-<https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b9>
-
--   langley (cal~th~∙cm^-2^) joule per square meter (J∙m^-2^) 4.184 E+04
--   degree Fahrenheit (°F) degree Celsius (°C) t/°C = (t/°F - 32)/1.8
--   mile per hour (mi/h) 	meter per second (m/s) 	4.4704 	E-01
-
-# Data
-
-New York Air Quality Measurements Description Daily air quality measurements in New York, May to September 1973.
-
-Usage airquality Format A data frame with 153 observations on 6 variables.
-
-[,1] Ozone numeric Ozone (ppb) [,2] Solar.R numeric Solar R (lang) [,3] Wind numeric Wind (mph) [,4] Temp numeric Temperature (degrees F) [,5] Month numeric Month (1--12) [,6] Day numeric Day of month (1--31) Details Daily readings of the following air quality values for May 1, 1973 (a Tuesday) to September 30, 1973.
-
-Ozone: Mean ozone in parts per billion from 1300 to 1500 hours at Roosevelt Island
-
-Solar.R: Solar radiation in Langleys in the frequency band 4000--7700 Angstroms from 0800 to 1200 hours at Central Park
-
-Wind: Average wind speed in miles per hour at 0700 and 1000 hours at LaGuardia Airport
-
-Temp: Maximum daily temperature in degrees Fahrenheit at La Guardia Airport.
-
-Source The data were obtained from the New York State Department of Conservation (ozone data) and the National Weather Service (meteorological data).
-
-References Chambers, J. M., Cleveland, W. S., Kleiner, B. and Tukey, P. A. (1983) Graphical Methods for Data Analysis. Belmont, CA: Wadsworth.
-
-
-
-
-Recommended Air Quality Guidelines (AQG) level for long-term exposure to ozone
-
-
-
-
-Conversion  factors  for  ozone:  at  20 °C  and  1013 hPa,  1 part  per  million 
-(ppm) = 1.9957 mg/m and 1 mg/m  0.5011 ppm. (WHO 2021:98)
-
-The definition of the critical value is quite complex. It is defined as the average of daily maximum 8-hour mean O3 concentration in the six consecutive months with the highest six-month running-average O3 concentration. (WHO 2021:103). 
-
-The WHO recommends interim targets of 100 µg/m3 respectively 70 µg/m3 and a final level of 60 µg/m3. For the data evaluation, the last value ist used for reference.
-
-Source: World Health Organization (WHO) (2021): WHO globalair quality guidelines
-
-
-
 # Data set
+
+The data describes the air quality in New York between May and September 1973 (Chambers et al. 1983). The ozone concentration was obtained from the New York State Department of Conservation. The meteorological data - wind, temperature and solar radiation - come from the National Weather Service.
+
+The data set comprises the following variables:
+
+-   Ozone: Mean ozone in parts per billion (ppb) from 1300 to 1500 hours at Roosevelt Island
+-   Solar.R: Solar radiation in Langleys in the frequency band 4000--7700 Angstroms from 0800 to 1200 hours at Central Park
+-   Wind: Average wind speed in miles per hour (mph) at 0700 and 1000 hours at LaGuardia Airport
+-   Temp: Maximum daily temperature in degrees Fahrenheit (°F) at LaGuardia Airport.
+-   Month: numeric month (1--12)
+-   Day: numeric day of month (1--31)
+
 ```{r}
-airquality
+# First 10 rows of the dataset
+head(airquality, 10) |>
+  knitr::kable(format = "html") |>
+  kableExtra::kable_classic(full_width = F)
 ```
 
-# Convert data
-Convert units from data set into SI-Units and add a new column with date-time object
+# Ozone formation
+
+The ozone formation in the earths atmosphere ocurs by a combination reaction of atomic oxygen (O) and molecular oxygen (O~2~) (Wang et al., 2017, p. 1583). In the stratosphere as well as in the troposphere, ozone formation requires solar radiation. Because of the absence of short-wavelength ultraviolet (UV) radiation in the lowest layers of the atmosphere, on ground level, ozone is formed in combination with other chemical species (ibid.). In combination with nitrogen oxide (NO~2~) the process is called No~X~-cycle. The second process is called organic peroxy radical (RO~2~)-cycle and happens when volatile organic compounds are present (ibid.).
+
+# Hypothesis
+
+The well understood ozone formation process can explain, why ozone concentration on ground level is the highest in urban areas during summer months. The available data will be used to verify or reject the following hypothesis:
+
+-   As higher the solar radiation, the higher the ozone concentration is
+
+Air pollution is involved in the ozone formation process. A second hypothesis can be framed:
+
+-   Days with stronger wind will have lower ozone concentration, because air pollution is diluted by air exchange
+
+# Data conversion
+
+Measurement values in the data set are not in SI units. In a first step, they are converted into SI units by the following conversion factors, provided by the National Institute of Standards and Technology (NIST 2016):
+
+|                   | To convert from          | to                               | Multiply by            |
+|-----------------|-----------------|----------------------|-----------------|
+| Density of energy | langley (cal~th~∙cm^-2^) | joule per square meter (J∙m^-2^) | 4.184∙10^4^            |
+| Temperature       | degree Fahrenheit (°F)   | degree Celsius (°C)              | t/°C = (t/°F - 32)/1.8 |
+| Velocity          | mile per hour (mi∙h^-1^)     | meter per second (m∙s^-1^)           | 4.4704∙10^-1^          |
 
 ```{r}
+# Convert units from data set into SI-units and add a new column with date-time object
 airquality_SI <-
   airquality |>
     mutate(Solar.R = Solar.R * 4.184e04, # Solar radiation in J/m^2
-           Wind = Wind * 4.4704e-01, # Wind speed in m/s
-           Temp = (Temp - 32)/1.8, # Temperature in °C
+           Wind = Wind * 4.4704e-01,     # Wind speed in m/s
+           Temp = (Temp - 32)/1.8,       # Temperature in °C
            date = ymd(
              paste("1973-",
                    as.character(Month),
@@ -87,105 +76,168 @@ airquality_SI <-
            )
 ```
 
-# Time series
+# Temporal patterns
 
-```{r}
-plot_1 <- ggplot(
+Plotting the measured values against the time, gives am overview about the available data.
+
+```{r, fig.height=8}
+# Ozon concentration plot
+ozon_plot <- ggplot(
     data = airquality_SI,
     aes(x = date, y = Ozone)) +
-  geom_line() +
+  geom_line(color="#0072B2", linewidth=1) +
   labs(title = "Mean Ozone Concentration", 
        subtitle = "Roosevelt Island, 1973",
-       x = "Time",
-       y = "Concentration (ppb)") +
+       x = "Date",
+       y = expression(atop("Concentration", "ppb"))) +
   theme_classic()
-```
 
-```{r}
-plot_2 <- ggplot(
+# Temperature plot
+temp_plot <- ggplot(
+    data = airquality_SI,
+    aes(x = date, y = Temp)) +
+  geom_line(color="#0072B2", linewidth=1) +
+  labs(title = "Maximum Daily Temperature", 
+       subtitle = "LaGuardia Airport, 1973",
+       x = "Date",
+       y = expression(atop("Temperature", paste(""^o,"C")))) +
+  theme_classic()
+
+
+# Wind speed plot
+wind_plot <- ggplot(
     data = airquality_SI,
     aes(x = date, y = Wind)) +
-  geom_line() +
-  labs(title = "Mean Ozone Concentration", 
-       subtitle = "Roosevelt Island, 1973",
-       x = "Time",
-       y = "Concentration (ppb)") +
+  geom_line(color="#0072B2", linewidth=1) +
+  ylim(0, 10) +
+  labs(title = "Average Wind Speed", 
+       subtitle = "LaGuardia Airport, 1973",
+       x = "Date",
+       y = expression(atop("Wind Speed", paste("m ", "s"^-1)))) +
   theme_classic()
 
-```
-
-```{r}
-cowplot::plot_grid(plot_1, plot_2, ncol = 1, labels = "auto")
-```
-
-
-# Histogram
-```{r}
-ggplot(
-    data = na.omit(airquality_SI),
-    aes(x = Ozone, y = ..density..)
-    ) +
-  geom_histogram(bins = 20, fill = "grey70", color = "black") +
-  geom_vline(aes(xintercept=30,
-            color="blue", linetype="dashed", size=1)) +
-  geom_density(color = "red") +  # we can overlay multiple plot layers!
-  labs(title = "Histogram and density", x = "Ozone Concentration (ppb)" ) +
-  theme_classic()
-```
-
-```{r}
-ggplot(
-    data = na.omit(airquality_SI),
-    aes(x = Ozone)
-    ) +
-  geom_histogram(bins = 20, fill = "grey70", color = "black") +
-  geom_vline(aes(xintercept=30,
-            color="blue", linetype="dashed", size=1)) +
-  geom_density(color = "red") +  # we can overlay multiple plot layers!
-  labs(title = "Histogram and density", x = "Ozone Concentration (ppb)", y = "count" ) +
+# Wind speed plot
+radiation_plot <- ggplot(
+    data = airquality_SI,
+    aes(x = date, y = Solar.R / 1e6)) +
+  geom_line(color="#0072B2", linewidth=1) +
+  labs(title = "Solar radiation", 
+       subtitle = "Central Park, 1973",
+       x = "Date",
+       y = expression(atop("Radiatoin Energy", paste("MJ ", " m"^-2)))) +
   theme_classic()
 
+# Show the four plots
+cowplot::plot_grid(temp_plot, wind_plot, radiation_plot, ozon_plot, ncol = 1, labels = "auto")
 ```
 
+The four diagrams show the measured values for the whole period of time. Diagram **a** represents the temperature. The values are higher during the sommer months from June to August compared to Mai and September. The measured wind speed, shown in diagram **b**, show that there is some wind on almost every day, covered by the data. The solar radiation in diagram **c** shows, some variation in the measured energy density. On a certain amount of days, it seems that the sky was covered by clouds and the measured energy was almost zero. Important from the ozone concentratoin in diagram **d** is the big number of missing values.
 
+# Scatter plots and correlations
 
+Representing the data as scatter plots and calculating the correlations between the different variables helps to understand the dependencies between them.
 
 ```{r}
-pairs(airquality[c("Ozone", "Solar.R", "Wind", "Temp")], panel = panel.smooth, main = "airquality data")
-```
-
-```{r}
+# Pairwise scatter plots and correlation coefficients
 ggpairs(na.omit(airquality), columns = 1:4, progress = FALSE)
 ```
 
+The strongest correlation is calculated between temperature and ozone concentration. As described in the ozone formation chapter, the temperature is not directly involved in the ozone formation process, it's not considered in the next diagrams.
 
 ```{r}
-airquality_corr <- cor(airquality[c("Ozone", "Solar.R", "Wind", "Temp")], use = "pairwise.complete.obs")
-ggcorrplot(airquality_corr, type = "lower", hc.order = TRUE, lab = TRUE, digits = 3, )
-```
-Strongest correlation between temperature and ozone concentration
-But Temperature is depending on wind and solar radiation, therefore, these two variables are taken for the next plot
-
-```{r}
+# Scatter plot with colored points
 ggplot(
   data = na.omit(airquality_SI),
-  aes(x = Wind, y = Ozone, color = Solar.R)) +
+  aes(x = Wind, y = Ozone, color = Solar.R / 1e6)) +
   geom_point(size = 2) +
   labs(x = expression(paste("Wind speed (m s"^-1, ")")),
        y = "Ozone Concentration (ppb)") +
   theme_classic() +
-  scale_color_viridis_c(expression(paste("Solar Radiation (J m"^-2, ")")))
+  scale_color_viridis_c(expression(paste("Solar Radiation (MJ m"^-2, ")")))
 ```
-High ozone concentrations occur in case of low wind speed and higher solar radiation.
+
+The diagram shows that high ozone concentrations occur in case of low wind speed and higher solar radiation.
+
+# Linear model
+
+```{r}
+# Calculate linear regression model
+linmod <- lm(Ozone ~ Wind + Solar.R, data = na.omit(airquality_SI))
+summary(linmod)
+```
+
+The linear model, including the wind speed and the solar radiation as independent variables confirm the observed behavior from the previous graph. The mean ozone concentration is 12.08 ppb per m∙s^-1^ lower, ceteris paribus. A higher solar radiation by 1 MJ∙m^-2^ will increase the ozone concentration by 2.398 ppb, in case all other condistions stay constant. Both values are significant with a confidence level, lower than 1%.
+
+```{r}
+# Linear regression for wind speed
+wind_reg_plot <- ggplot(
+  data = na.omit(airquality_SI),
+  aes(x = Wind, y = Ozone)) +
+  geom_point(size = 1) +
+  geom_smooth(formula=y~x, method = "lm", color = "red", fullrange = TRUE) +
+  labs(x = expression(paste("Wind speed (m s"^-1, ")")),
+       y = "Ozone Concentration (ppb)") +
+  theme_classic()
 
 
-# Hypothesis
+# Linear regression for solar radiation
+rad_reg_plot <- ggplot(
+  data = na.omit(airquality_SI),
+  aes(x = Solar.R / 1e6, y = Ozone)) +
+  geom_point(size = 1) +
+  geom_smooth(formula=y~x, method = "lm", color = "red", fullrange = TRUE) +
+  labs(x = expression(paste("Solar Radiation (MJ m"^-2, ")")),
+       y = "Ozone Concentration (ppb)") +
+  theme_classic()
 
--   stronger radiation, more ozone
--   stronger wind, less pollution and ozone as well as lower temperature
+# Show the four plots
+cowplot::plot_grid(wind_reg_plot, rad_reg_plot, ncol = 2, labels = "auto")
+```
 
-# Graphs
+The two graphs illustrate the linear regression for the two variables independently, graph **a** for the wind speed and graph **b** for the solar radiation.
 
--   Time series
--   Scatter plots with linear regressions
--   Ozone box plots per month
+# Frequency of high ozone concentrations
+
+The World Health Organization (WHO) gives recommendations for long-term exposure to ozone in their Air Quality Guidelines (AQG) (WHO 2021). The definition of the critical value is quite complex. It is defined as the average of daily maximum 8-hour mean O~3~ concentration in the six consecutive months with the highest six-month running-average O~3~ concentration. (WHO 2021:103). For the data evaluation in this work, the final target level of 60 µg∙m^-3^ is compared to the daily mean ozone concentration from the data set.
+
+The conversion factors for ozone concentration at 20 °C and 1013 hPa is as follows: 1 mg∙m^-3^ = 0.5011 ppm. (WHO 2021:98). In the diagrams, the limit is set to 30 ppb.
+
+```{r}
+# Plotting histogram of ozone concentration
+hist_plot <- ggplot(
+    data = na.omit(airquality_SI),
+    aes(x = Ozone)
+    ) +
+  geom_histogram(bins = 20, fill = "grey70", color = "black") +
+  geom_vline(aes(xintercept=30), color="blue", linetype="dashed", size=1) +
+  labs(title = "Histogram", x = "Ozone Concentration (ppb)", y = "Number" ) +
+  theme_classic()
+
+# Plotting the empirical cumulative distribution of the ozone concentratoin
+ecdf_plot <- ggplot(
+    data = na.omit(airquality_SI),
+    aes(x = Ozone)
+    ) +
+  stat_ecdf(geom = "step") +
+  geom_vline(aes(xintercept=30), color="blue", linetype="dashed", size=1) +
+  geom_hline(aes(yintercept=ecdf(airquality_SI$Ozone)(30)), color="red", linetype="dotted", size=1) +
+  labs(title = "Empirical Cumulative Distribution", x = "Ozone Concentration (ppb)", y = "empirical cumulative distribution function" ) +
+  theme_classic()
+
+# Show the four plots
+cowplot::plot_grid(hist_plot, ecdf_plot, ncol = 2, labels = "auto")
+```
+
+The dashed blue line represents the recommended ozone concentration from the WHO. In New York, the measured ozone concentration was higher than the recommended levels almos every second day during the summer 1973.
+
+# Literature
+
+Chambers, J. M., Cleveland, W. S., Kleiner, B. and Tukey, P. A. (1983) Graphical Methods for Data Analysis. Belmont, CA: Wadsworth.
+
+NIST (National Institute of Standards and Technology) Physical Measurement Laboratory 2016: NIST Guide to the SI, Appendix B.9: Factors for units listed by kind of quantity or field of science. <https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b9> (accessed on June 1^st^, 2023)
+
+Wang, Tao, Likun Xue, Peter Brimblecombe, Yun Fat Lam, Li Li und Li Zhang 2017: Ozone pollution in China: A review of concentrations, meteorological influences, chemical precursors, and effects. Science of The Total Environment 575 : 1582--1596. DOI: <https://doi.org/10.1016/j.scitotenv.2016.10.081>
+
+World Health Organization (WHO) (2021): WHO globalair quality guidelines.
+
+
