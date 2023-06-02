@@ -1,7 +1,47 @@
 ---
 title: "AGDS Report"
-author: "Martin Sigrist"
-date: "2023-02-20"
+author: "Martin Sigrist (21-101-175)"
+date: "2023-06-03"
 output: html_document
 ---
+
+This document links to the individual HTML-files for each report exercise of the Advanced Geodata Science course.
+
+# Chapter 3: Data Wrangling
+
+The goal of this chapter is the preparation of a data set for further analysis:
+
+[Cleaning data](./html/re_tidy.html)
+
+
+# Chapter 4: Data visualisation
+
+In this chapter, air quality data in combination with meteorological data is analysed. This analysis is used to tell a "story" and to create publishable graphs.
+
+[Telling a story from data](./html/re_story.html)
+
+# Chapter 7: Code management
+
+The task for this chapter was the use of code management possibilities, provided from GitHub. This exercise was done in pairs. My team mate was Alexandre Buser (alexandre.buser@students.unibe.ch). The two repositories can be accessed with the following links:
+
+-   Own repository: https://github.com/sigipedia/Chapter_7-R_Project
+-   Forked repository: https://github.com/1234567890041/Chaper7_R-Repository
+
+# Chapter 8: Regression and classification
+
+The main challenge of chapter 8 was the programming of a stepwise forward regression.
+
+[Stepwise forward regression](./html/re_stepwise.html)
+
+# Chapter 9: Supervised machine learning I
+
+The aim of this part of the course was the introduction in k-Nearest-Neighbor machine learning models and the comparision with the linear model. 
+
+[Supervised Machine Learning I](./html/re_ml_01.html)
+
+# Chapter 10: Supervised machine learning II
+
+In this final chapter, the application of kNN-models was the focus of the work.
+
+[Supervised Machine Learning II](./html/re_ml_02.html)
 
