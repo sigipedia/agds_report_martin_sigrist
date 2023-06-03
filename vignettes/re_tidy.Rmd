@@ -1,8 +1,7 @@
 ---
-title: "Cleaning data from elevated CO~2~
-experiments"
+title: "Data Wrangling"
 author: "Martin Sigrist (21-101-175)"
-date: "2023-05-25"
+date: "03.06.2023"
 output: html_document
 ---
 
@@ -12,12 +11,12 @@ The following manual modifications have been done with Excel:
 
 -   Removed header text
 -   Modified column headers
-  o   time in years
-  o   CO~2~ content in g~C~ m^-2^
+    -   time in years
+    -   CO~2~ content in g~C~ m^-2^
 -   Removed empty rows
 -   Filled up empty cells in experiment column
 
-The cleaned data was saved in a csv-file for usage in this work.
+The cleaned data was saved in a csv-file for usage with R.
 
 # Load Packages
 
@@ -26,22 +25,25 @@ library(tidyverse)
 ```
 
 # Import Data
+
 ```{r}
-elev_CO2_exp <- readr::read_delim("../data/1249534s1-s6_cleaned.csv", delim = ";", show_col_types = FALSE) # Read data set from file
+# Read data set from file
+elev_CO2_exp <- readr::read_delim("../data/1249534s1-s6_cleaned.csv", delim = ";", show_col_types = FALSE)
 ```
 
 # Log-response ration per experiment
 
-Data are aggregated per experiment by calculating the mean value for the ambient (low) and elevated (high) CO~2~ concentration. As the development over time is not from interest, the data evaluation can be done like that.
+Observations are aggregated per experiment by calculating the mean value for the ambient (low) and the elevated (high) CO~2~ concentration. The evaluation can be done like that, because the development over time is not from interest.
 
 ```{r}
+# Calculate log-response ratio per experiment
 experiment_data <- elev_CO2_exp |>                                          # Elevated CO2 Experiments data set
   select(experiment, ends_with("CO2_mean")) |>                              # Take columns from interest
   group_by(experiment) |>                                                   # Group data by experiment
   summarise(amb_CO2 = mean(amb_CO2_mean), inc_CO2 = mean(inc_CO2_mean)) |>  # Calculate mean values per experiment
   mutate(LRR = log(inc_CO2 / amb_CO2))                                      # Calculate Log-Response Ration
 
-
+# Table with calculated results
 experiment_data |>
   knitr::kable(digits = c(NA, 1, 1, 4),
                col.names = c("Experiment",
@@ -56,7 +58,7 @@ experiment_data |>
 
 # Log-response ration per time phase
 
-The log-response ration per phase in the experiment is calculated first for each data point. The number of data point for the three stages (early, mid and late) are different. The mean values of the log-response ratio for each phase is calculated at the end to avoid over weighting of the data points in the phases with a low number of measurements. The temporal development during the experiments are not from interest.
+The log-response ration per phase in the experiment is calculated first for each data point. The number of data points for the three stages (early, mid and late) are different. The mean values of the log-response ratio for each phase is calculated at the end to avoid over weighting of the data points in the phases with a low number of measurements. The temporal developments during the experiments are not from interest.
 
 ```{r}
 # Adding new column with the phase definition (early, mid, late)
@@ -95,4 +97,3 @@ phase_LRR |>
                format = "html") |>
   kableExtra::kable_classic(full_width = F)
 ```
-

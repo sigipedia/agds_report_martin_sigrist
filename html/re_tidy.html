@@ -11,9 +11,8 @@
 
 <meta name="author" content="Martin Sigrist (21-101-175)" />
 
-<meta name="date" content="2023-05-25" />
 
-<title>Cleaning data from elevated CO2 experiments</title>
+<title>Data Wrangling</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -574,10 +573,9 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Cleaning data from elevated CO<sub>2</sub>
-experiments</h1>
+<h1 class="title toc-ignore">Data Wrangling</h1>
 <h4 class="author">Martin Sigrist (21-101-175)</h4>
-<h4 class="date">2023-05-25</h4>
+<h4 class="date">03.06.2023</h4>
 
 </div>
 
@@ -587,12 +585,15 @@ experiments</h1>
 <p>The following manual modifications have been done with Excel:</p>
 <ul>
 <li>Removed header text</li>
-<li>Modified column headers o time in years o CO<sub>2</sub> content in
-g<sub>C</sub> m<sup>-2</sup></li>
+<li>Modified column headers
+<ul>
+<li>time in years</li>
+<li>CO<sub>2</sub> content in g<sub>C</sub> m<sup>-2</sup></li>
+</ul></li>
 <li>Removed empty rows</li>
 <li>Filled up empty cells in experiment column</li>
 </ul>
-<p>The cleaned data was saved in a csv-file for usage in this work.</p>
+<p>The cleaned data was saved in a csv-file for usage with R.</p>
 </div>
 <div id="load-packages" class="section level1">
 <h1>Load Packages</h1>
@@ -600,21 +601,23 @@ g<sub>C</sub> m<sup>-2</sup></li>
 </div>
 <div id="import-data" class="section level1">
 <h1>Import Data</h1>
-<pre class="r"><code>elev_CO2_exp &lt;- readr::read_delim(&quot;../data/1249534s1-s6_cleaned.csv&quot;, delim = &quot;;&quot;, show_col_types = FALSE) # Read data set from file</code></pre>
+<pre class="r"><code># Read data set from file
+elev_CO2_exp &lt;- readr::read_delim(&quot;../data/1249534s1-s6_cleaned.csv&quot;, delim = &quot;;&quot;, show_col_types = FALSE)</code></pre>
 </div>
 <div id="log-response-ration-per-experiment" class="section level1">
 <h1>Log-response ration per experiment</h1>
-<p>Data are aggregated per experiment by calculating the mean value for
-the ambient (low) and elevated (high) CO<sub>2</sub> concentration. As
-the development over time is not from interest, the data evaluation can
-be done like that.</p>
-<pre class="r"><code>experiment_data &lt;- elev_CO2_exp |&gt;                                          # Elevated CO2 Experiments data set
+<p>Observations are aggregated per experiment by calculating the mean
+value for the ambient (low) and the elevated (high) CO<sub>2</sub>
+concentration. The evaluation can be done like that, because the
+development over time is not from interest.</p>
+<pre class="r"><code># Calculate log-response ratio per experiment
+experiment_data &lt;- elev_CO2_exp |&gt;                                          # Elevated CO2 Experiments data set
   select(experiment, ends_with(&quot;CO2_mean&quot;)) |&gt;                              # Take columns from interest
   group_by(experiment) |&gt;                                                   # Group data by experiment
   summarise(amb_CO2 = mean(amb_CO2_mean), inc_CO2 = mean(inc_CO2_mean)) |&gt;  # Calculate mean values per experiment
   mutate(LRR = log(inc_CO2 / amb_CO2))                                      # Calculate Log-Response Ration
 
-
+# Table with calculated results
 experiment_data |&gt;
   knitr::kable(digits = c(NA, 1, 1, 4),
                col.names = c(&quot;Experiment&quot;,
@@ -1393,11 +1396,12 @@ WSL - sand, low N
 <div id="log-response-ration-per-time-phase" class="section level1">
 <h1>Log-response ration per time phase</h1>
 <p>The log-response ration per phase in the experiment is calculated
-first for each data point. The number of data point for the three stages
-(early, mid and late) are different. The mean values of the log-response
-ratio for each phase is calculated at the end to avoid over weighting of
-the data points in the phases with a low number of measurements. The
-temporal development during the experiments are not from interest.</p>
+first for each data point. The number of data points for the three
+stages (early, mid and late) are different. The mean values of the
+log-response ratio for each phase is calculated at the end to avoid over
+weighting of the data points in the phases with a low number of
+measurements. The temporal developments during the experiments are not
+from interest.</p>
 <pre class="r"><code># Adding new column with the phase definition (early, mid, late)
 elev_CO2_exp &lt;-
   elev_CO2_exp |&gt;                                                    # Elevated CO2 Experiments data set

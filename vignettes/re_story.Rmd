@@ -1,7 +1,7 @@
 ---
-title: "Telling a story from data"
-author: "Martin Sigrist"
-date: "2023-06-01"
+title: "Data visualisation"
+author: "Martin Sigrist (21-101-175)"
+date: "03.06.2023"
 output: html_document
 ---
 
@@ -31,8 +31,8 @@ The data set comprises the following variables:
 -   Month: numeric month (1--12)
 -   Day: numeric day of month (1--31)
 
-```{r}
-# First 10 rows of the dataset
+```{r, message=FALSE}
+# Show first 10 rows of the data set
 head(airquality, 10) |>
   knitr::kable(format = "html") |>
   kableExtra::kable_classic(full_width = F)
@@ -40,13 +40,13 @@ head(airquality, 10) |>
 
 # Ozone formation
 
-The ozone formation in the earths atmosphere ocurs by a combination reaction of atomic oxygen (O) and molecular oxygen (O~2~) (Wang et al., 2017, p. 1583). In the stratosphere as well as in the troposphere, ozone formation requires solar radiation. Because of the absence of short-wavelength ultraviolet (UV) radiation in the lowest layers of the atmosphere, on ground level, ozone is formed in combination with other chemical species (ibid.). In combination with nitrogen oxide (NO~2~) the process is called No~X~-cycle. The second process is called organic peroxy radical (RO~2~)-cycle and happens when volatile organic compounds are present (ibid.).
+The ozone formation in the earths atmosphere occurs by a combination reaction of atomic oxygen (O) and molecular oxygen (O~2~) (Wang et al., 2017, p. 1583). In the stratosphere as well as in the troposphere, ozone formation requires solar radiation. Because of the absence of short-wavelength ultraviolet (UV) radiation in the lowest layers of the atmosphere, on ground level, ozone is only formed in combination with other chemical species (ibid.). In combination with nitrogen oxide (NO~2~) the process is called No~X~-cycle. A second process is called organic peroxy radical (RO~2~)-cycle and happens when volatile organic compounds are present (ibid.).
 
 # Hypothesis
 
 The well understood ozone formation process can explain, why ozone concentration on ground level is the highest in urban areas during summer months. The available data will be used to verify or reject the following hypothesis:
 
--   As higher the solar radiation, the higher the ozone concentration is
+-   As higher the solar radiation, the higher is the ozone concentration.
 
 Air pollution is involved in the ozone formation process. A second hypothesis can be framed:
 
@@ -131,7 +131,7 @@ radiation_plot <- ggplot(
 cowplot::plot_grid(temp_plot, wind_plot, radiation_plot, ozon_plot, ncol = 1, labels = "auto")
 ```
 
-The four diagrams show the measured values for the whole period of time. Diagram **a** represents the temperature. The values are higher during the sommer months from June to August compared to Mai and September. The measured wind speed, shown in diagram **b**, show that there is some wind on almost every day, covered by the data. The solar radiation in diagram **c** shows, some variation in the measured energy density. On a certain amount of days, it seems that the sky was covered by clouds and the measured energy was almost zero. Important from the ozone concentratoin in diagram **d** is the big number of missing values.
+The four diagrams show the measured values for the whole period of time. Diagram **a** represents the temperature. The values are higher during the summer months from June to August compared to Mai and September. The measured wind speed, shown in diagram **b**, show that there is some wind on almost every day, covered by the data. The solar radiation in diagram **c** shows, some variation in the measured energy density. On a certain amount of days, it seems that the sky might have been covered by clouds and the measured energy was almost zero. Important from the ozone concentration in diagram **d** is the big number of missing values.
 
 # Scatter plots and correlations
 
@@ -142,7 +142,7 @@ Representing the data as scatter plots and calculating the correlations between 
 ggpairs(na.omit(airquality), columns = 1:4, progress = FALSE)
 ```
 
-The strongest correlation is calculated between temperature and ozone concentration. As described in the ozone formation chapter, the temperature is not directly involved in the ozone formation process, it's not considered in the next diagrams.
+The strongest correlation is calculated between temperature and ozone concentration. As described in the ozone formation chapter, the temperature is not directly involved in the ozone formation process and it's not considered in the next diagrams.
 
 ```{r}
 # Scatter plot with colored points
@@ -166,7 +166,7 @@ linmod <- lm(Ozone ~ Wind + Solar.R, data = na.omit(airquality_SI))
 summary(linmod)
 ```
 
-The linear model, including the wind speed and the solar radiation as independent variables confirm the observed behavior from the previous graph. The mean ozone concentration is 12.08 ppb per m∙s^-1^ lower, ceteris paribus. A higher solar radiation by 1 MJ∙m^-2^ will increase the ozone concentration by 2.398 ppb, in case all other condistions stay constant. Both values are significant with a confidence level, lower than 1%.
+The linear model, including the wind speed and the solar radiation as independent variables confirm the observed behavior from the previous graph. The mean ozone concentration is 12.08 ppb lower per m∙s^-1^ wind speed, ceteris paribus. A higher solar radiation of 1 MJ∙m^-2^ will increase the ozone concentration by 2.398 ppb in average, in case all other conditions stay constant. Both values are significant with a confidence level, lower than 0.1%.
 
 ```{r}
 # Linear regression for wind speed
@@ -194,11 +194,12 @@ rad_reg_plot <- ggplot(
 cowplot::plot_grid(wind_reg_plot, rad_reg_plot, ncol = 2, labels = "auto")
 ```
 
-The two graphs illustrate the linear regression for the two variables independently, graph **a** for the wind speed and graph **b** for the solar radiation.
+The two graphs illustrate the linear regression for the two variables independently, graph **a** for the wind speed and graph **b** for the solar radiation. Plotting the ozone concentration against the solar radiation shows a high variance.
+The results from the linear regression models support both hypotheses.
 
 # Frequency of high ozone concentrations
 
-The World Health Organization (WHO) gives recommendations for long-term exposure to ozone in their Air Quality Guidelines (AQG) (WHO 2021). The definition of the critical value is quite complex. It is defined as the average of daily maximum 8-hour mean O~3~ concentration in the six consecutive months with the highest six-month running-average O~3~ concentration. (WHO 2021:103). For the data evaluation in this work, the final target level of 60 µg∙m^-3^ is compared to the daily mean ozone concentration from the data set.
+The World Health Organization (WHO) gives recommendations for long-term exposure to ozone in their Air Quality Guidelines (AQG) (WHO 2021). The definition of the critical value is quite complex. It is defined as the average of daily maximum 8-hour mean O~3~ concentration in the six consecutive months with the highest six-month running-average O~3~ concentration. (WHO 2021:103). For the data evaluation in this work, simply the final target level of 60 µg∙m^-3^ is compared to the daily mean ozone concentration from the data set.
 
 The conversion factors for ozone concentration at 20 °C and 1013 hPa is as follows: 1 mg∙m^-3^ = 0.5011 ppm. (WHO 2021:98). In the diagrams, the limit is set to 30 ppb.
 
@@ -209,7 +210,7 @@ hist_plot <- ggplot(
     aes(x = Ozone)
     ) +
   geom_histogram(bins = 20, fill = "grey70", color = "black") +
-  geom_vline(aes(xintercept=30), color="blue", linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=30), color="blue", linetype="dashed", linewidth=1) +
   labs(title = "Histogram", x = "Ozone Concentration (ppb)", y = "Number" ) +
   theme_classic()
 
@@ -219,8 +220,8 @@ ecdf_plot <- ggplot(
     aes(x = Ozone)
     ) +
   stat_ecdf(geom = "step") +
-  geom_vline(aes(xintercept=30), color="blue", linetype="dashed", size=1) +
-  geom_hline(aes(yintercept=ecdf(airquality_SI$Ozone)(30)), color="red", linetype="dotted", size=1) +
+  geom_vline(aes(xintercept=30), color="blue", linetype="dashed", linewidth=1) +
+  geom_hline(aes(yintercept=ecdf(airquality_SI$Ozone)(30)), color="red", linetype="dotted", linewidth=1) +
   labs(title = "Empirical Cumulative Distribution", x = "Ozone Concentration (ppb)", y = "empirical cumulative distribution function" ) +
   theme_classic()
 
@@ -228,7 +229,7 @@ ecdf_plot <- ggplot(
 cowplot::plot_grid(hist_plot, ecdf_plot, ncol = 2, labels = "auto")
 ```
 
-The dashed blue line represents the recommended ozone concentration from the WHO. In New York, the measured ozone concentration was higher than the recommended levels almos every second day during the summer 1973.
+The dashed blue line represents the recommended ozone concentration from the WHO. In New York, the measured ozone concentration was higher than the recommended levels almost every second day during the summer 1973.
 
 # Literature
 

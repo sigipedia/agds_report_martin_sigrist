@@ -1,7 +1,7 @@
 ---
 title: "Supervised Machine Learning II"
-author: "Maritn Sigrist"
-date: "2023-05-15"
+author: "Martin Sigrist (21-101-175)"
+date: "03.06.2023"
 output: 
   html_document: 
     toc: yes
@@ -214,7 +214,7 @@ eval_model(mod = mod_knn_comb, df_train = daily_fluxes_dav_test, df_test = daily
 A model trained with a combined data set is able to make valid predictions for both sites. For both sites, R^2^ and RMSE are similar to the ones that resulted from the models, train with data from one site only.
 
 # Site comparision
-## Base on available data
+## Based on available data
 The two sites can be compared based on the available measurements. In this case, the variables of temperature, precipitation and shortwave incoming radiation were compared, because they are strongly relevant for vegetation growth. The calculation does not consider missing values and different number of days per month. Therefor, monthly and yearly mean values and sums are rough estimations only.
 
 ```{r, label=month_mean_plot, message=FALSE, fig.width=8}
@@ -293,11 +293,11 @@ The presentation of the three variables mainly show two differences between the 
 
 ## Information from Fluxnet website
 
-The Fluxnet website provides detailed information about the two sites. The relevant characteristics for the interpretation of the KNN-models are listed below.
+The Fluxnet website provides detailed information about the two sites. The relevant characteristics for the interpretation of the kNN-models are listed below.
 
 ### Davos
 
-Data sourcs: https://fluxnet.org/sites/siteinfo/CH-Dav
+Data source: https://fluxnet.org/sites/siteinfo/CH-Dav
 
 -   Elevation: 1639 m
 -   Vegetation IGBP: 	ENF (Evergreen Needleleaf Forests: Lands dominated by woody vegetation with a percent cover >60% and height exceeding 2 meters. Almost all trees remain green all year. Canopy is never without green foliage.)
@@ -307,7 +307,7 @@ Data sourcs: https://fluxnet.org/sites/siteinfo/CH-Dav
 
 ### Lägern
 
-Data sourcce: https://fluxnet.org/sites/siteinfo/CH-Lae
+Data source: https://fluxnet.org/sites/siteinfo/CH-Lae
 
 -   Elevation: 689 m
 -   Vegetation IGBP: 	MF (Mixed Forests: Lands dominated by trees with a percent cover >60% and height exceeding 2 meters. Consists of tree communities with interspersed mixtures or mosaics of the other four forest types. None of the forest types exceeds 60% of landscape.)

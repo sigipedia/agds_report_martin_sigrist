@@ -1,18 +1,13 @@
 ---
-title: "re_stepwise"
-author: "Martin Sigrist"
-date: "2023-04-05"
+title: "Regression "
+author: "Martin Sigrist (21-101-175)"
+date: "03.06.2023"
 output: html_document
-editor_options: 
-  markdown: 
-    wrap: 72
 ---
 
 # Introduction
 
-The aim of this chapter is stepwise forward regression. The dependent
-variable is the gross primary production (GPP). It is defined a the
-gross CO~2~ uptake flux driven by photosynthesis.
+The aim of this chapter is stepwise forward regression. The dependent variable is the gross primary production (GPP). It is defined a the gross CO~2~ uptake flux driven by photosynthesis.
 
 The used data is from the Fluxnet from the Davos site (https://fluxnet.org/sites/siteinfo/CH-Dav). The following variables are considered in for the evaluation:
 
@@ -24,13 +19,14 @@ The used data is from the Fluxnet from the Davos site (https://fluxnet.org/sites
 -   PA\_\* (kPa): Atmospheric pressure
 -   P\_\* (mm): Precipitation
 -   WS\_\* (m s^−1^): Wind speed
--   SWC\_\* (%): Volumetric soil water content
+-   CO2\_\* (µmolCO~2~ mol^−1^): Carbon Dioxide (CO~2~) mole fraction in moist air
+-   PPFD_IN (µmolPhotons m^−2^ s^−1^): incoming photosynthetic photon flux density
 -   GPP\_\* (μmol~CO2~ m^−2^ s^−1^): Gross primary production (the ecosystem-level gross CO2 uptake flux driven by
     photosynthesis)
 
 # Load required libraries
 
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
 ```
 
@@ -44,7 +40,7 @@ half_hourly_fluxes <- read_csv("../data/df_for_stepwise_regression.csv", show_co
 
 In a first step, a bivariate model for each independent variable is calculated
 
-```{r}
+```{r, message=FALSE}
 # Vector with names of independent variables
 indep_vars <- colnames(half_hourly_fluxes)[! colnames(half_hourly_fluxes) %in% c("siteid", "TIMESTAMP", "GPP_NT_VUT_REF")]
 
@@ -67,12 +63,15 @@ for (i in indep_vars) {
 }
 
 # Show results, rounded on three decimal places
-res |> mutate_at(vars(-feature), ~round(., 3))
+res |> mutate_at(vars(-feature), ~round(., 3)) |>
+  knitr::kable(format = "html") |>
+  kableExtra::kable_classic(full_width = F)
 ```
 
 ## Scatter plots
 
 ```{r}
+# Create scatter plots for each independent variable
 half_hourly_fluxes |>
   select_if(is.numeric) |>
   gather(-GPP_NT_VUT_REF, key = "var", value = "value") |>
@@ -84,18 +83,23 @@ half_hourly_fluxes |>
     theme_bw()
 ```
 
+## Discussion
+
+R^2^ reaches the highest values in the bimodal linear regressions for the air temperature (TA_F, TA_F_MDS), the incoming short wave radiation (SW_IN_F, SW_IN_F_MDS) and the incoming photosynthetic photon flux density (PPFD_IN). Variables with the same name but with different suffixes (_F, _F_MDS) are principally the same measurement, but for the first, gaps are filled by Marginal Distribution Sampling (MDS) (Pastorello et al. 2020). The resulting values for each variable pair are therefore very similar.
+The determination coefficient and the mean square error for the PPFD_IN variable are similar to them of the short wave radiation. The photosynthetically active radiation is part of the total incoming radiation. Similar results are expected and observed.
+
 # Stepwise forward regression
 
 In the second part, a linear model is compiled stepwise. For each step, one more independent variable is added to the model until the Akaike’s Information Criterion (AIC) reaches a minimal value.
 
-```{r}
+```{r, message=FALSE}
 # Vector with names of independent variables
 indep_vars <- colnames(half_hourly_fluxes)[! colnames(half_hourly_fluxes) %in% c("siteid", "TIMESTAMP", "GPP_NT_VUT_REF")]
 
 # Create empty data frame for results
 df_res <- data.frame(matrix(nrow = 0, ncol = length(indep_vars) + 2))
 #provide column names
-colnames(df_res) <- append(append(c("prev.model"), indep_vars),"AIC")
+colnames(df_res) <- append(append(c("base.model"), indep_vars),"AIC")
 
 model_vars <- NULL # Define empty variable for the independent variables of the actual model
 step_AIC <- NULL # Variable to store AIC value for the highest R2 in the sctual step
@@ -150,11 +154,12 @@ cat("AIC for best model: ", df_res[nrow(df_res)-1,ncol(df_res)], "\n")
 ## Results Visualisation
 
 ```{r}
-
 plot(apply(df_res[,3:ncol(df_res)-1], 1, max, na.rm = TRUE),
      xlab = "Step",
      ylab = bquote(italic(R)^2),) # Max value of Coefficient of determination for each step
 ```
+
+Plotting R^2^ against each step of the stepwise forward regression shows its convergence.
 
 # Using step-funtcion from stats-library
 
@@ -173,9 +178,11 @@ stats::step(
 
 # Discussion
 
-The stepwise forward regression algorithm is working. The implementation
-would accept also a different number of independent variables. Future
-improvements for an increased efficiency might be possible. The
-computational effort was not a scope of this work, as the amount of data
-to be processed is kept rather low.
-The step-function from the stats-library gives the same results for the final linear model, R^2^ and BIC.
+The stepwise forward regression algorithm is working. The implementation would accept also a different number of independent variables. Future improvements for an increased efficiency might be possible. The computational effort was not a scope of this work, as the amount of data to be processed is kept rather low. The step-function from the stats-library gives the same results for the final linear model, R^2^ and AIC.
+
+In the final model, from the two temperature variables (TA_F and TA_F_MDS) and the two incoming short wave radiation (SW_IN_F and SW_IN_F_MDS) are only one present. Because two of each represent the same measurements, they are not linear independent and adding the second one would not improve the model. A similar effect is observed between the PPFD_IN and the SW_IN_F variables. In the bivariate models, they both had a similar determination coefficient. But the wave length spectrum covered by the PPFD_IN variable is part of the wave length spectrum of the SW_IN_F variable and they are not fully independent. Therefore, the addition of the second one to the model has only a small positive effect on the determination coefficient.
+
+
+# Literature
+
+Pastorello, Gilberto, et al. 2020: The FLUXNET2015 dataset and the ONEFlux processing pipeline for eddy covariance data. Scientific Data 7 (1): 225. DOI: https://doi.org/10.1038/s41597-020-0534-3

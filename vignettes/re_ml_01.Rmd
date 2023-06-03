@@ -1,7 +1,7 @@
 ---
 title: "Supervised Machine Learning I"
-author: "Maritn Sigrist (21-101-175)"
-date: "2023-05-25"
+author: "Martin Sigrist (21-101-175)"
+date: "03.06.2023"
 output: html_document
 ---
 
@@ -62,7 +62,7 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 eval_model(mod = mod_lm, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
 ```
 
-The graph shows the predicted vs. measured GPP for the linear OLS model. In the left scatter plot shows the training data and the right one right one the results from the test data. The blue line in the plot has slope one and no offset. All points of the training and the test data would lie on this line with a perfect model. The red dashed line is the linear regression of the corresponding points. The coefficient of determination (R2) and the root mean square error (RMSE) are also shown in the graph. There is an important difference between the two metrics. R2 is calculated as in any other linear regression. Even with a perfect linear correlation - R2 equal one and all points on the red line - depending on the model, there could still be an offset in predicted values. The RMSE value is calculated against the blue line.
+The graph shows the predicted vs. measured GPP for the linear OLS model. The left scatter plot shows the training data and the right one the results for the test data. The blue line in the plot has slope one and no offset. All points of the training and the test data would lie on this line with a perfect model. The red dashed line is the linear regression of the corresponding points. The coefficient of determination (R^2^) and the root mean square error (RMSE) are also shown in the graph. There is an important difference between the two metrics. R^2^ is calculated as in any other linear regression. Even with a perfect linear correlation - R^2^ equal one and all points on the red line - depending on the model, there could still be an offset in predicted values. The RMSE value is calculated against the blue curve.
 The comparison of the results from the training and the test data show similar values for both metrics. Identical RMSE values is an indication for a good bias-variance trade-off. The slope of the regression line is smaller than the one from an ideal model. This indicates that the model shows the tendency to underestimate higher GPP values and to overestimate lower values.
 
 ## k-Neares-Neighbour model
@@ -81,7 +81,7 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
 ```
 
-The first k-Nearest-Neighbour (KNN) model shows similar results as the linear model. All metrics values are within the same range. The RMSE values are both smaller and the R2 values higher than on the linear model. The prediction accuracy of the KNN model is better. The difference of the RMSE values between the training and the test data is an indication that the bias-variance trade-off is not perfect. The model show better result on the training data than on the test data. The model is overfitted and it's ability for generalization is not ideal.
+The first k-Nearest-Neighbour (kNN) model shows similar results as the linear model. All metrics values are within the same range. The RMSE values are both smaller and the R^2^ values higher than for the linear model. The prediction accuracy of the kNN-model is better. The difference of the RMSE values between the training and the test data indicates that the bias-variance trade-off is not perfect. The model shows a better result on the training data than on the test data. The model is overfitted and it's ability for generalization is not ideal.
 Also this model show the tendency to underestimate higher GPP values and to overestimate lower values.
 
 
@@ -176,12 +176,12 @@ suppressWarnings( # Suppress warnings
 )
 ```
 
-The temporal variation predicted by the KNN model shows a similar pattern as the linear model.
+The temporal variation predicted by the kNN-model shows a similar pattern as the linear model.
 
 
 ### Day of year mean values
 
-Comparing the mean value for each day of the year will give closer look on the annual variation.
+Comparing the mean value for each day of the year will give a closer look on the annual variation.
 
 ```{r}
 # Prepare data frame for plotting
@@ -233,7 +233,7 @@ lm_res_doy <- ggplot(
 cowplot::plot_grid(gpp_meas_doy, gpp_lm_doy, lm_res_doy, nrow = 3)
 ```
 
-The aggregation for each day of the year clearly show that the model is underestimating higher and overestimating lower values. In average, predicted values for spring-time are too high and for summer-time too low.
+The aggregation for each day of the year clearly shows that the model is underestimating higher and overestimating lower values. In average, predicted values for spring-time are too high and for summer-time too low.
 
 #### KNN Model
 ```{r}
@@ -264,15 +264,15 @@ knn_res_doy <- ggplot(
 cowplot::plot_grid(gpp_meas_doy, gpp_knn_doy, knn_res_doy, nrow = 3)
 ```
 
-The KNN model have the same tendency as the linear model.
+The kNN-model have the same tendency as the linear model.
 
 
 # The role of k
 ## Hypothesis
 
-Setting the value for k to one would results in a perfect correlation on the training data. Predicting GPP from an observation of the training set would result in the measured value, because only this single point would be considered. R2 would become 1 and RMSE would become 0. An overfitted model has low bias and a high variance. The metrics of the test data would give a small R2 and a high RMSE.
+Setting the value for k to one would results in a perfect correlation on the training data. Predicting GPP from an observation of the training set would result in the measured value, because only this single point would be considered. R^2^ would become 1 and RMSE would become 0. An overfitted model has low bias and a high variance. The metrics of the test data would give a small R^2^ and a high RMSE.
 
-Taking a hig value for k would reslut in an underfitted model. For the case that k is equal the number of observations (N), every prediction would give the same result, the average of the training data. For both sets - training and validation - R2 would become 0 and RMSE would be big.
+Taking a big value for k would result in an underfitted model. For the case that k is equal the number of observations (N), every prediction would give the same result, the average of the training data. For both sets - training and validation - R^2^ would become 0 and RMSE would be big.
 
 
 ## Model with k = 1
@@ -309,12 +309,12 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
 ```
 
-The KNN model with a high value chosen for k, shows the hypothesized result. Compared to the KNN model in the previous chapter, R2 is lower and RMSE higher for both data sets.
+The KNN model with a high value chosen for k, shows the hypothesized result. Compared to the kNN-model in the previous chapter, R^2^ is lower and RMSE higher for both data sets.
 
 
 ## Evaluate dependency from k
 
-In the last step dependency from k on the KNN model results is investigated. Two different methods are used for tuning the hyperparameter k.
+In the last step, the dependency from k on the kNN-model results is investigated. Two different methods are used for tuning the hyperparameter k.
 
 ### Method: Cross validation
 ```{r}
@@ -407,4 +407,4 @@ suppressWarnings( # Suppress warnings from Box-Cox-Transformation
 eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
 ```
 
-Compared to all previous models, the final model achieves the highest R2 value and the lowest RMSE for the training and the test set. The tuning of the hyperparameter k was successful. Additionally, both values are similar for both sets. This indicates, that the model has a good bias-variance balance.
+Compared to all previous models, the final model achieves the highest R^2^ value and the lowest RMSE for the training and the test set. The tuning of the hyperparameter k was successful. Additionally, both values are similar for both sets. This indicates, that the model has a good bias-variance balance.
